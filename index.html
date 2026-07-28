@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Topic Based AI Quiz Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+
+    .main-box {
+      max-width: 550px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      position: relative;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+    }
+
+    p.sub {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    button.secondary-btn {
+      background-color: #17a2b8;
+      margin-top: 10px;
+    }
+
+    button.secondary-btn:hover {
+      background-color: #138496;
+    }
+
+    .logout-btn {
+      background-color: #dc3545;
+      width: auto;
+      padding: 5px 10px;
+      font-size: 12px;
+      float: right;
+    }
+
+    .logout-btn:hover {
+      background-color: #c82333;
+    }
+
+    .user-bar {
+      overflow: hidden;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .question {
+      background: #f9f9f9;
+      padding: 12px;
+      border: 1px solid #ddd;
+      margin-top: 10px;
+      border-radius: 4px;
+    }
+
+    .options {
+      margin-top: 8px;
+    }
+
+    .options label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    .result {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #007bff;
+      margin-top: 15px;
+    }
+
+    .topic-tags {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    .error-msg {
+      color: #d9534f;
+      font-size: 13px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-box">
+  
+  <!-- Header Bar (Shown when logged in) -->
+  <div id="userBar" class="user-bar hide">
+    <span>Welcome, <b id="displayUsername">User</b>!</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <h2>Topic AI Quiz Generator</h2>
+
+  <!-- Step 0: Login Page -->
+  <div id="step0">
+    <p class="sub">Please login to access the Quiz Generator</p>
+    <div id="loginError" class="error-msg hide"></div>
+    
+    <label><b>Username:</b></label>
+    <input type="text" id="usernameInput" placeholder="Enter username (e.g. user)">
+
+    <label><b>Password:</b></label>
+    <input type="password" id="passwordInput" placeholder="Enter password (e.g. 1234)">
+
+    <button onclick="handleLogin()">Login</button>
+  </div>
+
+  <!-- Step 1: Input Topic Name -->
+  <div id="step1" class="hide">
+    <p class="sub">Enter any topic name to generate offline questions!</p>
+    <label><b>Enter Topic Name:</b></label>
+    <input type="text" id="topicInput" placeholder="e.g. Python, Cricket, Science, History...">
+    <div class="topic-tags">Try topics like: <i>Python, Cricket, History, Science</i></div>
+    <button onclick="generateTopicQuiz()">Generate Questions</button>
+  </div>
+
+  <!-- Step 2: Quiz Form -->
+  <div id="step2" class="hide">
+    <h3 id="quizTitle">Quiz Questions:</h3>
+    <div id="quizContainer"></div>
+    
+    <button class="secondary-btn" onclick="addExtraQuestions()">+ Load More Questions</button>
+    <button style="margin-top: 10px;" onclick="checkAnswers()">Submit Quiz</button>
+  </div>
+
+  <!-- Step 3: Result -->
+  <div id="step3" class="hide">
+    <h3>Quiz Finished!</h3>
+    <div id="scoreText" class="result"></div>
+    <button onclick="restart()" style="margin-top: 15px;">Try Another Topic</button>
+  </div>
+</div>
+
+<script>
+  let currentQuestions = [];
+  let currentTopicName = "";
+  let loggedInUser = "";
+
+  // Built-in Offline Knowledge Base
+  const knowledgeBase = {
+    python: [
+      { q: "What type of language is Python?", ans: "Interpreted", opts: ["Interpreted", "Compiled", "Assembly", "Low-level"] },
+      { q: "Who created Python language?", ans: "Guido van Rossum", opts: ["Guido van Rossum", "Dennis Ritchie", "James Gosling", "Bjarne Stroustrup"] },
+      { q: "Which keyword is used to define a function in Python?", ans: "def", opts: ["def", "function", "func", "define"] },
+      { q: "What is the correct file extension for Python files?", ans: ".py", opts: [".py", ".python", ".pt", ".pyt"] },
+      { q: "Which data structure is immutable in Python?", ans: "Tuple", opts: ["Tuple", "List", "Dictionary", "Set"] },
+      { q: "How do you insert COMMENTS in Python code?", ans: "#", opts: ["#", "//", "/*", "--"] },
+      { q: "Which method is used to remove whitespace from a string?", ans: "strip()", opts: ["strip()", "trim()", "cut()", "clean()"] },
+      { q: "Which operator is used for exponentiation (power)?", ans: "**", opts: ["**", "^", "pow", "//"] }
+    ],
+    cricket: [
+      { q: "How many players are in a standard cricket team on field?", ans: "11", opts: ["11", "10", "12", "9"] },
+      { q: "How many overs are in a T20 match per side?", ans: "20 overs", opts: ["20 overs", "50 overs", "10 overs", "15 overs"] },
+      { q: "What is the length of a cricket pitch?", ans: "22 yards", opts: ["22 yards", "20 yards", "24 yards", "18 yards"] },
+      { q: "Which country won the first Cricket World Cup in 1975?", ans: "West Indies", opts: ["West Indies", "Australia", "India", "England"] },
+      { q: "What does LBW stand for in cricket?", ans: "Leg Before Wicket", opts: ["Leg Before Wicket", "Long Ball Wide", "Leg Bat Wicket", "Line Before Wicket"] },
+      { q: "How many runs are awarded for hitting over the boundary line directly?", ans: "6 runs", opts: ["6 runs", "4 runs", "8 runs", "5 runs"] }
+    ],
+    history: [
+      { q: "Who was the first President of the United States?", ans: "George Washington", opts: ["George Washington", "Abraham Lincoln", "Thomas Jefferson", "John Adams"] },
+      { q: "In which year did World War 2 end?", ans: "1945", opts: ["1945", "1939", "1918", "1950"] },
+      { q: "Which civilization built the Pyramids?", ans: "Ancient Egyptians", opts: ["Ancient Egyptians", "Romans", "Greeks", "Mayans"] },
+      { q: "Who was known as the 'Iron Man of India'?", ans: "Sardar Vallabhbhai Patel", opts: ["Sardar Vallabhbhai Patel", "Mahatma Gandhi", "Nehru", "Subhash Chandra Bose"] }
+    ],
+    science: [
+      { q: "What is the chemical formula of Water?", ans: "H2O", opts: ["H2O", "CO2", "NaCl", "O2"] },
+      { q: "Which planet is known as the Red Planet?", ans: "Mars", opts: ["Mars", "Venus", "Jupiter", "Saturn"] },
+      { q: "What gas do plants absorb during photosynthesis?", ans: "Carbon Dioxide", opts: ["Carbon Dioxide", "Oxygen", "Nitrogen", "Hydrogen"] },
+      { q: "What is the speed of light approx?", ans: "300,000 km/s", opts: ["300,000 km/s", "150,000 km/s", "500,000 km/s", "1,000 km/s"] }
+    ]
+  };
+
+  // Auth Functions
+  function handleLogin() {
+    let user = document.getElementById("usernameInput").value.trim();
+    let pass = document.getElementById("passwordInput").value.trim();
+    let errorDiv = document.getElementById("loginError");
+
+    if (user === "" || pass === "") {
+      errorDiv.innerText = "Please enter both username and password.";
+      errorDiv.classList.remove("hide");
+      return;
+    }
+
+    // Default mock check (Accepts any non-empty input, or username "user" with pass "1234")
+    loggedInUser = user;
+    document.getElementById("displayUsername").innerText = loggedInUser;
+    
+    errorDiv.classList.add("hide");
+    document.getElementById("step0").classList.add("hide");
+    document.getElementById("userBar").classList.remove("hide");
+    document.getElementById("step1").classList.remove("hide");
+  }
+
+  function logout() {
+    loggedInUser = "";
+    document.getElementById("usernameInput").value = "";
+    document.getElementById("passwordInput").value = "";
+    document.getElementById("topicInput").value = "";
+    
+    document.getElementById("userBar").classList.add("hide");
+    document.getElementById("step1").classList.add("hide");
+    document.getElementById("step2").classList.add("hide");
+    document.getElementById("step3").classList.add("hide");
+    document.getElementById("step0").classList.remove("hide");
+  }
+
+  // Utility to shuffle an array
+  function shuffleArray(arr) {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }
+
+  // Quiz Generation Logic
+  function generateTopicQuiz() {
+    let input = document.getElementById("topicInput").value.trim().toLowerCase();
+
+    if (input === "") {
+      alert("Please enter a topic name first!");
+      return;
+    }
+
+    currentTopicName = input;
+    let rawQuestions = [];
+
+    let matchedKey = Object.keys(knowledgeBase).find(key => input.includes(key));
+
+    if (matchedKey) {
+      let list = shuffleArray(knowledgeBase[matchedKey]);
+      rawQuestions = list.slice(0, 5);
+    } else {
+      rawQuestions = generateGenericQuestions(input, 5);
+    }
+
+    currentQuestions = rawQuestions.map(item => ({
+      ...item,
+      shuffledOpts: shuffleArray(item.opts)
+    }));
+
+    renderQuiz();
+    document.getElementById("step1").classList.add("hide");
+    document.getElementById("step2").classList.remove("hide");
+  }
+
+  function generateGenericQuestions(topic, count) {
+    let capTopic = topic.charAt(0).toUpperCase() + topic.slice(1);
+    let templates = [
+      {
+        q: `What is the primary objective or focus of ${capTopic}?`,
+        ans: `Study and application of ${capTopic}`,
+        opts: [`Study and application of ${capTopic}`, `Web Hosting Service`, `Hardware Manufacturing`, `Network Protocol`]
+      },
+      {
+        q: `Which domain or field is ${capTopic} most closely associated with?`,
+        ans: `Core ${capTopic} Fundamentals`,
+        opts: [`Core ${capTopic} Fundamentals`, `Space Exploration Only`, `Culinary Arts`, `Mobile SIM Cards`]
+      },
+      {
+        q: `In the context of ${capTopic}, why is structured analysis important?`,
+        ans: `To ensure accuracy and efficiency`,
+        opts: [`To ensure accuracy and efficiency`, `To increase cost unnecessarily`, `To slow down processing`, `It has no importance`]
+      },
+      {
+        q: `Which of the following best describes a key component of ${capTopic}?`,
+        ans: `Core principles and rules of ${capTopic}`,
+        opts: [`Core principles and rules of ${capTopic}`, `Random Guesswork`, `Unrelated algorithms`, `Manual paper logs`]
+      },
+      {
+        q: `What is considered a basic requirement to get started with ${capTopic}?`,
+        ans: `Understanding foundational concepts`,
+        opts: [`Understanding foundational concepts`, `Buying expensive servers`, `High-level quantum hardware`, `No learning required`]
+      },
+      {
+        q: `How does mastering ${capTopic} benefit real-world applications?`,
+        ans: `It improves problem-solving in ${capTopic}`,
+        opts: [`It improves problem-solving in ${capTopic}`, `It creates software errors`, `It reduces data security`, `No practical benefit`]
+      }
+    ];
+
+    return shuffleArray(templates).slice(0, count);
+  }
+
+  function renderQuiz() {
+    let container = document.getElementById("quizContainer");
+    document.getElementById("quizTitle").innerText = `Quiz on: ${currentTopicName.toUpperCase()}`;
+    
+    let userSelections = {};
+    for (let i = 0; i < currentQuestions.length; i++) {
+      let selected = document.querySelector(`input[name="q${i}"]:checked`);
+      if (selected) userSelections[i] = selected.value;
+    }
+
+    container.innerHTML = "";
+
+    for (let i = 0; i < currentQuestions.length; i++) {
+      let item = currentQuestions[i];
+
+      let html = `<div class="question">
+        <p><b>Q${i+1}. ${item.q}</b></p>
+        <div class="options">`;
+
+      for (let j = 0; j < item.shuffledOpts.length; j++) {
+        let opt = item.shuffledOpts[j];
+        let checked = (userSelections[i] === opt) ? "checked" : "";
+        html += `<label>
+          <input type="radio" name="q${i}" value="${opt}" ${checked}> ${opt}
+        </label>`;
+      }
+
+      html += `</div></div>`;
+      container.innerHTML += html;
+    }
+  }
+
+  function addExtraQuestions() {
+    let matchedKey = Object.keys(knowledgeBase).find(key => currentTopicName.includes(key));
+    let newRaw = [];
+
+    if (matchedKey) {
+      let remaining = knowledgeBase[matchedKey].filter(q => !currentQuestions.some(cq => cq.q === q.q));
+      newRaw = remaining.slice(0, 3);
+    } 
+
+    if (newRaw.length === 0) {
+      let extraTemplates = generateGenericQuestions(currentTopicName, 6);
+      newRaw = extraTemplates.filter(q => !currentQuestions.some(cq => cq.q === q.q)).slice(0, 3);
+    }
+
+    if (newRaw.length === 0) {
+      alert("No more unique questions available for this topic!");
+      return;
+    }
+
+    let prepared = newRaw.map(item => ({
+      ...item,
+      shuffledOpts: shuffleArray(item.opts)
+    }));
+
+    currentQuestions = currentQuestions.concat(prepared);
+    renderQuiz();
+  }
+
+  function checkAnswers() {
+    let score = 0;
+    let answeredCount = 0;
+
+    for (let i = 0; i < currentQuestions.length; i++) {
+      let selected = document.querySelector(`input[name="q${i}"]:checked`);
+      if (selected) {
+        answeredCount++;
+        if (selected.value === currentQuestions[i].ans) {
+          score++;
+        }
+      }
+    }
+
+    if (answeredCount < currentQuestions.length) {
+      if (!confirm(`You have answered ${answeredCount} of ${currentQuestions.length} questions. Do you still want to submit?`)) {
+        return;
+      }
+    }
+
+    document.getElementById("scoreText").innerText = `${loggedInUser}, your score is: ${score} / ${currentQuestions.length}`;
+    document.getElementById("step2").classList.add("hide");
+    document.getElementById("step3").classList.remove("hide");
+  }
+
+  function restart() {
+    document.getElementById("topicInput").value = "";
+    document.getElementById("step3").classList.add("hide");
+    document.getElementById("step1").classList.remove("hide");
+  }
+</script>
+
+</body>
+</html>
